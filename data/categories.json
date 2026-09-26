@@ -1,0 +1,26 @@
+[
+    {
+        "id": "ai-tools",
+        "name": "AI 툴 & 프롬프트",
+        "icon": "🤖",
+        "color": "#38bdf8"
+    },
+    {
+        "id": "dev-env",
+        "name": "개발 환경 & 서버",
+        "icon": "🚀",
+        "color": "#a855f7"
+    },
+    {
+        "id": "design-tools",
+        "name": "디자인 & 편집",
+        "icon": "🎨",
+        "color": "#f43f5e"
+    },
+    {
+        "id": "productivity",
+        "name": "생산성 & 유틸리티",
+        "icon": "⚡",
+        "color": "#fbbf24"
+    }
+]

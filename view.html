@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매뉴얼 보기 - Study Box</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="logo-area">
+                <span class="logo-icon">📦</span>
+                <span class="logo-title">Study Box</span>
+            </a>
+            <div class="nav-actions">
+                <a href="index.html" class="btn btn-secondary">← 목록으로 돌아가기</a>
+                <a id="btnEditView" href="edit.html" class="btn btn-secondary">✏️ 수정하기</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="container" style="max-width: 900px;" id="viewContainer">
+        <!-- JS로 동적 상세 내역 렌더링 -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2026 Study Box | 초보자를 위한 프로그램 & AI 활용 가이드 모음집</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await StudyBoxApp.initViewPage();
+        });
+    </script>
+</body>
+</html>
