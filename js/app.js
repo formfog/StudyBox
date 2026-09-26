@@ -39,7 +39,7 @@ const StudyBoxApp = {
     },
 
     // 외부 서버에서 관리자 비밀번호 로드 (Git 저장소에 어떤 비밀번호 정보도 남기지 않음)
-    PASSWORD_URL: 'http://ilovecontestgnu.cafe24.com/Github_password/StudyBox/password.txt',
+    PASSWORD_URL: 'https://ilovecontestgnu.cafe24.com/Github_password/StudyBox/password.txt',
     
     isAdminLoggedIn() {
         return sessionStorage.getItem('studybox_admin_auth') === 'true';
