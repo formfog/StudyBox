@@ -1220,22 +1220,98 @@ function copyPageStepPrompt() {
 function parseJsonFromText(rawText) {
     if (!rawText) return null;
     let text = rawText.trim();
-    if (text.startsWith('```json')) text = text.replace(/^```json/, '');
+    
+    // 마크다운 코드 블록 제거
+    if (text.startsWith('```json')) text = text.replace(/^```json/i, '');
     if (text.startsWith('```')) text = text.replace(/^```/, '');
     if (text.endsWith('```')) text = text.replace(/```$/, '');
     text = text.trim();
+
+    // 1차 표준 파싱 시도
     try {
         return JSON.parse(text);
-    } catch (e) {
-        // 간단 정제 시도
-        const start = text.indexOf('[');
-        const end = text.lastIndexOf(']');
-        if (start !== -1 && end !== -1) {
+    } catch (e) {}
+
+    // [ ... ] 또는 { ... } 구간 잘라내기
+    const startObj = text.indexOf('{');
+    const startArr = text.indexOf('[');
+    let startPos = -1;
+    if (startObj !== -1 && startArr !== -1) {
+        startPos = Math.min(startObj, startArr);
+    } else if (startObj !== -1) {
+        startPos = startObj;
+    } else {
+        startPos = startArr;
+    }
+
+    if (startPos !== -1) {
+        const isArr = text[startPos] === '[';
+        const endPos = isArr ? text.lastIndexOf(']') : text.lastIndexOf('}');
+        if (endPos > startPos) {
+            text = text.substring(startPos, endPos + 1);
             try {
-                return JSON.parse(text.substring(start, end + 1));
-            } catch (err) {}
+                return JSON.parse(text);
+            } catch (e) {}
         }
     }
+
+    // 2차 고급 정제: 스마트 따옴표 변환 및 문자열 내부 따옴표/엔터 이스케이프 보정
+    let sanitized = text
+        .replace(/[“”„«»]/g, '"')
+        .replace(/[‘’‚]/g, "'");
+
+    // 문자 단위 스캐너로 문자열 내부의 미이스케이프 따옴표(\") 및 개행(\n) 보정
+    let clean = '';
+    let inString = false;
+    let isEscaped = false;
+
+    for (let i = 0; i < sanitized.length; i++) {
+        const ch = sanitized[i];
+        if (inString) {
+            if (isEscaped) {
+                clean += ch;
+                isEscaped = false;
+            } else if (ch === '\\') {
+                clean += ch;
+                isEscaped = true;
+            } else if (ch === '"') {
+                // 진정한 닫는 따옴표인지 판별
+                let nextIdx = i + 1;
+                while (nextIdx < sanitized.length && /\s/.test(sanitized[nextIdx])) {
+                    nextIdx++;
+                }
+                const nextCh = sanitized[nextIdx];
+                if (nextIdx >= sanitized.length || [':', '}', ']', ','].includes(nextCh)) {
+                    inString = false;
+                    clean += '"';
+                } else {
+                    clean += '\\"'; // 문자열 내부 따옴표 이스케이프
+                }
+            } else if (ch === '\n') {
+                clean += '\\n';
+            } else if (ch === '\r') {
+                clean += '\\r';
+            } else if (ch === '\t') {
+                clean += '\\t';
+            } else {
+                clean += ch;
+            }
+        } else {
+            if (ch === '"') {
+                inString = true;
+                clean += '"';
+            } else {
+                clean += ch;
+            }
+        }
+    }
+
+    try {
+        return JSON.parse(clean);
+    } catch (e) {
+        console.error("JSON parse failed after sanitizing:", e);
+    }
+
     return null;
 }
 
