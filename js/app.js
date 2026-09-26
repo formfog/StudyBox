@@ -38,15 +38,25 @@ const StudyBoxApp = {
         localStorage.setItem('studybox_programs', JSON.stringify(this.programs));
     },
 
-    // 관리자 인증 관련 메소드
-    ADMIN_PASS: 'ks9325!!',
+    // 관리자 인증 관련 메소드 (SHA-256 해시 검증으로 평문 비밀번호 노출 방지)
+    // 'ks9325!!'의 SHA-256 해시값: 15b7fbdd71f54be6f851eb3360b64be8fb1c539df04a8b7ddcbf2f0df77eec8a
+    ADMIN_HASH: '15b7fbdd71f54be6f851eb3360b64be8fb1c539df04a8b7ddcbf2f0df77eec8a',
     
     isAdminLoggedIn() {
         return sessionStorage.getItem('studybox_admin_auth') === 'true';
     },
 
-    loginAdmin(inputPass) {
-        if (inputPass === this.ADMIN_PASS) {
+    async hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    },
+
+    async loginAdmin(inputPass) {
+        const inputHash = await this.hashPassword(inputPass);
+        if (inputHash === this.ADMIN_HASH) {
             sessionStorage.setItem('studybox_admin_auth', 'true');
             this.renderAdminUI();
             return true;
@@ -75,7 +85,7 @@ const StudyBoxApp = {
         }
     },
 
-    checkAdminPermission() {
+    async checkAdminPermission() {
         if (this.isAdminLoggedIn()) {
             return true;
         }
@@ -83,7 +93,8 @@ const StudyBoxApp = {
         if (input === null) {
             return false;
         }
-        if (this.loginAdmin(input)) {
+        const success = await this.loginAdmin(input);
+        if (success) {
             alert("✅ 관리자 인증이 완료되었습니다.");
             return true;
         } else {
@@ -813,17 +824,22 @@ function handleAdminLogout() {
     alert("🔒 로그아웃 되었습니다.");
 }
 
-function handleAdminNavLink(event, href) {
-    if (!StudyBoxApp.checkAdminPermission()) {
-        event.preventDefault();
+async function handleAdminNavLink(event, href) {
+    const hasPerm = await StudyBoxApp.checkAdminPermission();
+    if (!hasPerm) {
+        if (event) event.preventDefault();
         return false;
+    }
+    if (href && href !== '#' && !event.defaultPrevented) {
+        window.location.href = href;
     }
     return true;
 }
 
 // Global Actions & Functions
-function deleteManual(id) {
-    if (!StudyBoxApp.checkAdminPermission()) return;
+async function deleteManual(id) {
+    const hasPerm = await StudyBoxApp.checkAdminPermission();
+    if (!hasPerm) return;
 
     if (confirm('정말로 이 매뉴얼을 삭제하시겠습니까?')) {
         let found = false;
@@ -848,13 +864,17 @@ function deleteManual(id) {
 
 let currentInsertTargetStepNo = null;
 
-function openStepInsertModal(manualId, stepNo) {
-    if (!StudyBoxApp.checkAdminPermission()) return;
-    openEditModal(manualId, false, stepNo);
+async function openStepInsertModal(manualId, stepNo) {
+    const hasPerm = await StudyBoxApp.checkAdminPermission();
+    if (!hasPerm) return;
+    openEditModal(manualId, false, stepNo, true);
 }
 
-function openEditModal(manualId, focusNewStep = false, insertAfterStepNo = null) {
-    if (!StudyBoxApp.checkAdminPermission()) return;
+async function openEditModal(manualId, focusNewStep = false, insertAfterStepNo = null, skipCheck = false) {
+    if (!skipCheck) {
+        const hasPerm = await StudyBoxApp.checkAdminPermission();
+        if (!hasPerm) return;
+    }
     currentInsertTargetStepNo = insertAfterStepNo;
 
     let targetManual = null;
@@ -1403,8 +1423,9 @@ function saveManualEditPage() {
     window.location.href = `index.html?id=${encodeURIComponent(data.manualId)}`;
 }
 
-function saveManualDataToStorage(data) {
-    if (!StudyBoxApp.checkAdminPermission()) return;
+async function saveManualDataToStorage(data) {
+    const hasPerm = await StudyBoxApp.checkAdminPermission();
+    if (!hasPerm) return;
     let targetProg = null;
     let targetManual = null;
 
@@ -1493,8 +1514,9 @@ function copyNewManualPrompt() {
     });
 }
 
-function saveNewManualFromAi() {
-    if (!StudyBoxApp.checkAdminPermission()) return;
+async function saveNewManualFromAi() {
+    const hasPerm = await StudyBoxApp.checkAdminPermission();
+    if (!hasPerm) return;
     const catId = document.getElementById('newCatId').value;
     const progName = document.getElementById('newProgName').value.trim();
     const jsonText = document.getElementById('newAiResponseJson').value;
