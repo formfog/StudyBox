@@ -513,7 +513,7 @@ switch ($action) {
         $startStepNo = intval($_POST['start_step_no'] ?? 1);
         if ($startStepNo < 1) $startStepNo = 1;
 
-        $apiKey = 'AQ.Ab8RN6JX3hkflc6hYljfVrKQpR6FRMEl8QD7PNFFydLD6-Dq6w';
+        $apiKey = 'YOUR_API_KEY';
 
         $prompt = "너는 프로그램 매뉴얼 작성 전문가야.
 기존에 작성된 [프로그램명]: {$progName}, [매뉴얼 제목]: {$title} 가이드에
