@@ -47,7 +47,9 @@ const StudyBoxApp = {
 
     async fetchAdminPassword() {
         try {
-            const response = await fetch(this.PASSWORD_URL, { cache: 'no-store' });
+            const response = await fetch(this.PASSWORD_URL, { 
+                cache: 'no-store'
+            });
             if (!response.ok) throw new Error('비밀번호 파일 접근 실패');
             const text = await response.text();
             return text.trim();
@@ -60,7 +62,7 @@ const StudyBoxApp = {
     async loginAdmin(inputPass) {
         const realPass = await this.fetchAdminPassword();
         if (!realPass) {
-            alert("⚠️ 외부 인증 서버에 연결할 수 없습니다.");
+            alert("⚠️ 외부 인증 서버 연결에 실패했습니다.\n(카페24 서버 설정 및 인터넷 연결을 확인해주세요)");
             return false;
         }
         if (inputPass.trim() === realPass) {
