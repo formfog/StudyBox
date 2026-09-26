@@ -38,25 +38,32 @@ const StudyBoxApp = {
         localStorage.setItem('studybox_programs', JSON.stringify(this.programs));
     },
 
-    // 관리자 인증 관련 메소드 (SHA-256 해시 검증으로 평문 비밀번호 노출 방지)
-    // 'ks9325!!'의 SHA-256 해시값: 15b7fbdd71f54be6f851eb3360b64be8fb1c539df04a8b7ddcbf2f0df77eec8a
-    ADMIN_HASH: '15b7fbdd71f54be6f851eb3360b64be8fb1c539df04a8b7ddcbf2f0df77eec8a',
+    // 외부 서버에서 관리자 비밀번호 로드 (Git 저장소에 어떤 비밀번호 정보도 남기지 않음)
+    PASSWORD_URL: 'http://ilovecontestgnu.cafe24.com/Github_password/StudyBox/password.txt',
     
     isAdminLoggedIn() {
         return sessionStorage.getItem('studybox_admin_auth') === 'true';
     },
 
-    async hashPassword(password) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    async fetchAdminPassword() {
+        try {
+            const response = await fetch(this.PASSWORD_URL, { cache: 'no-store' });
+            if (!response.ok) throw new Error('비밀번호 파일 접근 실패');
+            const text = await response.text();
+            return text.trim();
+        } catch (error) {
+            console.error('인증 서버 연결 오류:', error);
+            return null;
+        }
     },
 
     async loginAdmin(inputPass) {
-        const inputHash = await this.hashPassword(inputPass);
-        if (inputHash === this.ADMIN_HASH) {
+        const realPass = await this.fetchAdminPassword();
+        if (!realPass) {
+            alert("⚠️ 외부 인증 서버에 연결할 수 없습니다.");
+            return false;
+        }
+        if (inputPass.trim() === realPass) {
             sessionStorage.setItem('studybox_admin_auth', 'true');
             this.renderAdminUI();
             return true;
