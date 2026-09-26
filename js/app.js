@@ -59,13 +59,22 @@ const StudyBoxApp = {
         }
     },
 
+    async hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    },
+
     async loginAdmin(inputPass) {
-        const realPass = await this.fetchAdminPassword();
-        if (!realPass) {
+        const targetHash = await this.fetchAdminPassword();
+        if (!targetHash) {
             alert("⚠️ 외부 인증 서버 연결에 실패했습니다.\n(카페24 서버 설정 및 인터넷 연결을 확인해주세요)");
             return false;
         }
-        if (inputPass.trim() === realPass) {
+        const inputHash = await this.hashPassword(inputPass.trim());
+        if (inputHash.toLowerCase() === targetHash.toLowerCase()) {
             sessionStorage.setItem('studybox_admin_auth', 'true');
             this.renderAdminUI();
             return true;
