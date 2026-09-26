@@ -51,8 +51,10 @@ const StudyBoxApp = {
                 cache: 'no-store'
             });
             if (!response.ok) throw new Error('비밀번호 파일 접근 실패');
-            const text = await response.text();
-            return text.trim();
+            let text = await response.text();
+            // UTF-8 BOM (\uFEFF) 및 기타 공백/제어문자 제거
+            text = text.replace(/^\uFEFF/, '').replace(/[\r\n\t]/g, '').trim();
+            return text;
         } catch (error) {
             console.error('인증 서버 연결 오류:', error);
             return null;
@@ -73,12 +75,23 @@ const StudyBoxApp = {
             alert("⚠️ 외부 인증 서버 연결에 실패했습니다.\n(카페24 서버 설정 및 인터넷 연결을 확인해주세요)");
             return false;
         }
-        const inputHash = await this.hashPassword(inputPass.trim());
+        const cleanedInputPass = inputPass.trim();
+        const inputHash = await this.hashPassword(cleanedInputPass);
+        
+        // 1. SHA-256 해시 검증
         if (inputHash.toLowerCase() === targetHash.toLowerCase()) {
             sessionStorage.setItem('studybox_admin_auth', 'true');
             this.renderAdminUI();
             return true;
         }
+
+        // 2. 평문 검증 (password.txt에 해시 대신 평문 ks9325!!가 들어가 있는 경우 자동 호환)
+        if (cleanedInputPass === targetHash) {
+            sessionStorage.setItem('studybox_admin_auth', 'true');
+            this.renderAdminUI();
+            return true;
+        }
+
         return false;
     },
 
