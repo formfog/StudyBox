@@ -38,6 +38,42 @@ const StudyBoxApp = {
         localStorage.setItem('studybox_programs', JSON.stringify(this.programs));
     },
 
+    // 관리자 인증 관련 메소드
+    ADMIN_PASS: 'ks9325!!',
+    
+    isAdminLoggedIn() {
+        return sessionStorage.getItem('studybox_admin_auth') === 'true';
+    },
+
+    loginAdmin(inputPass) {
+        if (inputPass === this.ADMIN_PASS) {
+            sessionStorage.setItem('studybox_admin_auth', 'true');
+            return true;
+        }
+        return false;
+    },
+
+    logoutAdmin() {
+        sessionStorage.removeItem('studybox_admin_auth');
+    },
+
+    checkAdminPermission() {
+        if (this.isAdminLoggedIn()) {
+            return true;
+        }
+        const input = prompt("🔐 관리자 전용 기능입니다.\n비밀번호를 입력하세요:");
+        if (input === null) {
+            return false;
+        }
+        if (this.loginAdmin(input)) {
+            alert("✅ 관리자 인증이 완료되었습니다.");
+            return true;
+        } else {
+            alert("❌ 비밀번호가 올바르지 않습니다.");
+            return false;
+        }
+    },
+
     resetToDefaultData(categories, programs) {
         this.categories = categories;
         this.programs = programs;
@@ -47,6 +83,7 @@ const StudyBoxApp = {
     // index.html 초기화 및 랜더링
     async initIndexPage() {
         await this.loadData();
+        this.renderAdminUI();
         
         const urlParams = new URLSearchParams(window.location.search);
         const selectedManualId = urlParams.get('id') || '';
@@ -422,6 +459,7 @@ const StudyBoxApp = {
 
     async initViewPage() {
         await this.loadData();
+        this.renderAdminUI();
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
 
@@ -521,6 +559,11 @@ const StudyBoxApp = {
 
     async initEditPage() {
         await this.loadData();
+        this.renderAdminUI();
+        if (!this.checkAdminPermission()) {
+            window.location.href = 'index.html';
+            return;
+        }
         const urlParams = new URLSearchParams(window.location.search);
         const manualId = urlParams.get('id') || '';
         const defaultProgName = urlParams.get('prog_name') || '';
@@ -730,6 +773,26 @@ const StudyBoxApp = {
         }
     },
 
+    renderAdminUI() {
+        const area = document.getElementById('adminStatusArea');
+        if (!area) return;
+
+        if (this.isAdminLoggedIn()) {
+            area.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; border: 1px solid #cbd5e1;">
+                    <span style="color: #059669; font-weight: 700;">🟢 관리자 로그인 됨</span>
+                    <button onclick="handleAdminLogout()" style="background: none; border: none; color: #64748b; font-weight: 600; cursor: pointer; text-decoration: underline; font-size: 0.8rem; padding: 0;">로그아웃</button>
+                </div>
+            `;
+        } else {
+            area.innerHTML = `
+                <button onclick="handleAdminLogin()" style="background: none; border: 1px dashed #cbd5e1; color: #64748b; font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: 600;">
+                    🔒 관리자 로그인
+                </button>
+            `;
+        }
+    },
+
     escapeHtml(str) {
         if (!str) return '';
         return String(str)
@@ -746,8 +809,36 @@ const StudyBoxApp = {
     }
 };
 
+// Global Admin Action Handlers
+function handleAdminLogin() {
+    const input = prompt("🔐 관리자 비밀번호를 입력하세요:");
+    if (input === null) return;
+    if (StudyBoxApp.loginAdmin(input)) {
+        alert("✅ 관리자로 로그인되었습니다.");
+        StudyBoxApp.renderAdminUI();
+    } else {
+        alert("❌ 비밀번호가 올바르지 않습니다.");
+    }
+}
+
+function handleAdminLogout() {
+    StudyBoxApp.logoutAdmin();
+    alert("🔒 로그아웃되었습니다.");
+    StudyBoxApp.renderAdminUI();
+}
+
+function handleAdminNavLink(event, href) {
+    if (!StudyBoxApp.checkAdminPermission()) {
+        event.preventDefault();
+        return false;
+    }
+    return true;
+}
+
 // Global Actions & Functions
 function deleteManual(id) {
+    if (!StudyBoxApp.checkAdminPermission()) return;
+
     if (confirm('정말로 이 매뉴얼을 삭제하시겠습니까?')) {
         let found = false;
         StudyBoxApp.programs.forEach(p => {
@@ -772,10 +863,12 @@ function deleteManual(id) {
 let currentInsertTargetStepNo = null;
 
 function openStepInsertModal(manualId, stepNo) {
+    if (!StudyBoxApp.checkAdminPermission()) return;
     openEditModal(manualId, false, stepNo);
 }
 
 function openEditModal(manualId, focusNewStep = false, insertAfterStepNo = null) {
+    if (!StudyBoxApp.checkAdminPermission()) return;
     currentInsertTargetStepNo = insertAfterStepNo;
 
     let targetManual = null;
@@ -1249,6 +1342,7 @@ function saveManualEditPage() {
 }
 
 function saveManualDataToStorage(data) {
+    if (!StudyBoxApp.checkAdminPermission()) return;
     let targetProg = null;
     let targetManual = null;
 
@@ -1338,6 +1432,7 @@ function copyNewManualPrompt() {
 }
 
 function saveNewManualFromAi() {
+    if (!StudyBoxApp.checkAdminPermission()) return;
     const catId = document.getElementById('newCatId').value;
     const progName = document.getElementById('newProgName').value.trim();
     const jsonText = document.getElementById('newAiResponseJson').value;
